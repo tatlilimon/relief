@@ -213,9 +213,11 @@ fn existing(candidates: impl IntoIterator<Item = Option<PathBuf>>) -> Option<Pat
         .and_then(|dir| dir.canonicalize().ok())
 }
 
-/// Ask a tool on PATH for a directory.
+/// Ask a tool on PATH for a directory. The tool is started in the home directory, so that
+/// the configuration of a project relief happens to be started in (an `.npmrc`, a `uv.toml`)
+/// cannot point it at a directory of its choosing.
 fn ask(env: &Env, program: &str, args: &[&str]) -> Option<PathBuf> {
-    let answer = crate::proc::output(&env.which(program)?, args, ASK)?;
+    let answer = crate::proc::output_in(&env.home, &env.which(program)?, args, ASK)?;
     Some(PathBuf::from(answer)).filter(|p| p.is_absolute())
 }
 

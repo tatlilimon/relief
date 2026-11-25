@@ -378,6 +378,32 @@ fn an_unattended_run_finishes_what_an_interrupted_one_started() {
 }
 
 #[test]
+fn a_tool_is_run_from_the_home_directory_wherever_relief_was_started() {
+    let w = World::new();
+    w.old(&[".cache/uv/CACHEDIR.TAG", "code/app/notes.txt"]);
+    w.fresh(&[".cache/uv/archive-v0/abc/mod.py"]);
+    let uv_cache = w.path(".cache/uv").display().to_string();
+    let log = w.path("uv.log").display().to_string();
+    w.tool(
+        "uv",
+        &format!("pwd -P >> {log}; [ \"$1 $2\" = \"cache dir\" ] && echo {uv_cache}; true"),
+    );
+
+    let r = ran(w
+        .command(&["clean", "--auto"])
+        .current_dir(w.path("code/app"))
+        .stdin(Stdio::null())
+        .output()
+        .unwrap());
+
+    assert_eq!(r.code, 0, "{}", r.err);
+    let home = w.home.display().to_string();
+    let log = w.read("uv.log");
+    assert!(log.lines().count() >= 2, "asked and pruned: {log}");
+    assert!(log.lines().all(|dir| dir == home), "{log}");
+}
+
+#[test]
 fn a_tool_prunes_its_own_cache_and_is_not_asked_again_until_the_cache_is_used() {
     let w = World::new();
     w.old(&[".cache/uv/CACHEDIR.TAG"]);

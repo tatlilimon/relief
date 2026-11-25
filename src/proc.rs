@@ -42,9 +42,17 @@ fn wait(mut child: Child, timeout: Duration) -> io::Result<(Child, ExitStatus)> 
 /// Run a program and return its standard output, or `None` when it fails, prints nothing
 /// useful, or does not finish in time.
 pub fn output(program: &Path, args: &[&str], timeout: Duration) -> Option<String> {
+    output_of(Command::new(program).args(args), timeout)
+}
+
+/// [`output`], with the program started in `dir` instead of wherever relief was started.
+pub fn output_in(dir: &Path, program: &Path, args: &[&str], timeout: Duration) -> Option<String> {
+    output_of(Command::new(program).args(args).current_dir(dir), timeout)
+}
+
+fn output_of(command: &mut Command, timeout: Duration) -> Option<String> {
     let child = spawn(
-        Command::new(program)
-            .args(args)
+        command
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::null()),
@@ -63,9 +71,17 @@ pub fn output(program: &Path, args: &[&str], timeout: Duration) -> Option<String
 
 /// Run a program to completion, discarding its output. `Ok(true)` when it succeeded.
 pub fn run(program: &Path, args: &[String], timeout: Duration) -> io::Result<bool> {
+    run_of(Command::new(program).args(args), timeout)
+}
+
+/// [`run`], with the program started in `dir` instead of wherever relief was started.
+pub fn run_in(dir: &Path, program: &Path, args: &[String], timeout: Duration) -> io::Result<bool> {
+    run_of(Command::new(program).args(args).current_dir(dir), timeout)
+}
+
+fn run_of(command: &mut Command, timeout: Duration) -> io::Result<bool> {
     let child = spawn(
-        Command::new(program)
-            .args(args)
+        command
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null()),

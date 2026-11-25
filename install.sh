@@ -12,7 +12,12 @@ set -eu
 
 repo="${RELIEF_REPO:-tatlilimon/relief}"
 dest="${RELIEF_INSTALL_DIR:-$HOME/.local/bin}"
-here="$(cd "$(dirname "$0")" 2>/dev/null && pwd || echo .)"
+# Only a script started as a file knows where its checkout is. Piped into a shell, $0 is the
+# shell, and the directory the user happens to stand in must never be built and installed.
+case "$0" in
+    install.sh|*/install.sh) here="$(cd "$(dirname "$0")" 2>/dev/null && pwd || true)" ;;
+    *) here="" ;;
+esac
 
 say() { printf '%s\n' "$*"; }
 die() { printf 'install.sh: %s\n' "$*" >&2; exit 1; }
@@ -33,7 +38,8 @@ install_binary() {
 }
 
 # 1. Inside a checkout, build from source.
-if [ -f "$here/Cargo.toml" ] && grep -q '^name = "relief"' "$here/Cargo.toml" 2>/dev/null; then
+if [ -n "$here" ] && [ -f "$here/install.sh" ] && [ -f "$here/Cargo.toml" ] \
+    && grep -q '^name = "relief"' "$here/Cargo.toml" 2>/dev/null; then
     command -v cargo >/dev/null 2>&1 || die "this is a source checkout but cargo is not installed (https://rustup.rs)"
     say "Building relief from source..."
     (cd "$here" && cargo build --release --locked)

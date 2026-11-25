@@ -264,6 +264,21 @@ fn the_tool_itself_is_asked_where_its_cache_is() {
 }
 
 #[test]
+fn a_tool_is_asked_from_the_home_directory_not_from_where_relief_was_started() {
+    let m = Machine::new();
+    m.old(&["go/pkg/mod/cache/download/y/@v/v1.zip"]);
+    let asked_from = m.home.join("asked-from");
+    m.tool("go", &format!("pwd -P > {}", asked_from.display()));
+
+    m.scan();
+
+    assert_eq!(
+        fs::read_to_string(&asked_from).unwrap().trim(),
+        m.home.display().to_string()
+    );
+}
+
+#[test]
 fn a_directory_that_does_not_look_like_the_cache_is_left_alone() {
     let m = Machine::new();
     m.old(&[

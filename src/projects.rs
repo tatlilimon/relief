@@ -395,6 +395,9 @@ fn git_activity(repo: &Path) -> i64 {
 fn tracked_by_git(repo: &Path, path: &Path) -> Option<bool> {
     let relative = path.strip_prefix(repo).ok()?;
     let mut child = Command::new("git")
+        // A repository's own configuration can name a program for git to run
+        // (core.fsmonitor). A directory found on disk does not get to run anything.
+        .args(["-c", "core.fsmonitor=false"])
         .arg("-C")
         .arg(repo)
         .args(["ls-files", "-z", "--"])
@@ -928,6 +931,28 @@ mod tests {
         let items = judge_after_100_days(&home, |_| {});
 
         assert_eq!(items[0].verdict, Verdict::Unverified);
+    }
+
+    #[test]
+    fn a_repository_cannot_make_git_run_a_program_of_its_own() {
+        let home = Home::new();
+        home.files(&strs(&node("code/app")));
+        home.git("code/app", &["init", "-q"]);
+        let mark = home.path.join("ran");
+        let program = crate::proc::testutil::script(
+            &home.path.join("hooks"),
+            "monitor",
+            &format!("touch {}", mark.display()),
+        );
+        home.git(
+            "code/app",
+            &["config", "core.fsmonitor", &program.display().to_string()],
+        );
+
+        let items = judge_after_100_days(&home, |_| {});
+
+        assert_eq!(items[0].verdict, Verdict::Unused);
+        assert!(!mark.exists(), "git ran the program the repository named");
     }
 
     #[test]

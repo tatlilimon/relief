@@ -145,7 +145,10 @@ pub fn execute(env: &Env, items: &[&Item], mode: &str, style: &Style) -> Result<
                 (freed, error)
             }
             Action::Prune { prune, before } => {
-                let error = match crate::proc::run(&prune.program, &prune.args, PRUNE_TIME) {
+                // From the home directory, like the question that located the cache.
+                let pruned =
+                    crate::proc::run_in(&env.home, &prune.program, &prune.args, PRUNE_TIME);
+                let error = match pruned {
                     Ok(true) => None,
                     Ok(false) => Some(format!("{} reported a failure", item.detail)),
                     Err(e) => Some(format!("{}: {e}", item.detail)),
