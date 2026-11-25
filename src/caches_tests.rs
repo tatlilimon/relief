@@ -330,15 +330,18 @@ fn pnpm_prune_is_estimated_from_the_files_no_project_links_to() {
     fs::create_dir_all(m.home.join("proj")).unwrap();
     fs::hard_link(store.join("files/11/linked"), m.home.join("proj/linked")).unwrap();
     m.tool("pnpm", &format!("echo {}", store.display()));
-    let orphan = crate::fsmeta::disk_bytes(&fs::metadata(store.join("files/00/orphan")).unwrap());
+    let disk = |rel: &str| crate::fsmeta::disk_bytes(&fs::metadata(store.join(rel)).unwrap());
+    let orphan = disk("files/00/orphan");
+    // Directories take a block each on some filesystems (ext4) and none on others (btrfs).
+    let directories = disk("files") + disk("files/00") + disk("files/11");
 
     let found = m.only("pnpm");
     let estimate = found.prune.unwrap().estimate.unwrap();
 
     assert_eq!(found.root, store);
     assert!(
-        estimate >= orphan && estimate < 2 * orphan,
-        "{estimate} vs {orphan}"
+        (orphan..=orphan + directories).contains(&estimate),
+        "{estimate} should be the orphan's {orphan} and at most {directories} of directories"
     );
 }
 
