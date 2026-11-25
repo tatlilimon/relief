@@ -260,7 +260,7 @@ fn a_dry_run_deletes_nothing() {
     assert_eq!(r.code, 0, "{}", r.err);
     assert!(r.out.contains("~/code/old/node_modules"), "{}", r.out);
     assert!(w.exists("code/old/node_modules/dep/index.js"));
-    assert_eq!(w.run(&["history"]).out.contains("node_modules"), false);
+    assert!(!w.run(&["history"]).out.contains("node_modules"));
 }
 
 #[test]
